@@ -342,12 +342,13 @@
     .shop-popup .leaflet-popup-content-wrapper {
       border-radius: var(--radius);
       padding: 0;
+      overflow: hidden;
       box-shadow: var(--shadow-hover);
     }
 
     .shop-popup .leaflet-popup-content {
       margin: 0;
-      width: 320px !important;
+      width: 280px !important;
     }
 
     .shop-popup .leaflet-popup-tip {
@@ -356,8 +357,6 @@
 
     .popup-content {
       padding: 0;
-      max-height: 360px;
-      overflow-y: auto;
     }
 
     .popup-header {
@@ -447,19 +446,6 @@
     .popup-video-btn:hover {
       opacity: 0.9;
       transform: translateY(-1px);
-    }
-
-    .popup-image-wrap {
-      padding: 0 16px 16px;
-    }
-
-    .popup-image {
-      width: 100%;
-      max-height: 220px;
-      object-fit: contain;
-      border-radius: var(--radius-sm);
-      display: block;
-      background: var(--bg);
     }
 
     /* ========== 移动端适配 ========== */
