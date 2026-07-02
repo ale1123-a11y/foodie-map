@@ -24,6 +24,7 @@
   let markersLayer = null;
   let currentUp主 = 'all';
   let currentSearch = '';
+  let isMobile = window.innerWidth <= 768;
 
   // ========== DOM 元素缓存 ==========
   const $ = (sel) => document.querySelector(sel);
@@ -234,6 +235,11 @@
     });
 
     highlightListItem(id);
+
+    // 移动端：点击列表项后自动切换到地图视图
+    if (isMobile) {
+      switchTab('map');
+    }
   };
 
   function highlightListItem(id) {
@@ -241,6 +247,36 @@
       card.classList.toggle('active', parseInt(card.dataset.id) === id);
     });
   }
+
+  // ========== 移动端 Tab 切换 ==========
+  window.switchTab = function(tab) {
+    const sidebar = $('.sidebar');
+    const overlay = $('#sidebar-overlay');
+    const tabMap = $('#tab-map');
+    const tabList = $('#tab-list');
+    if (!sidebar || !tabMap || !tabList) return;
+
+    if (tab === 'list') {
+      sidebar.classList.add('show');
+      if (overlay) overlay.classList.add('show');
+      tabList.classList.add('active');
+      tabMap.classList.remove('active');
+    } else {
+      sidebar.classList.remove('show');
+      if (overlay) overlay.classList.remove('show');
+      tabMap.classList.add('active');
+      tabList.classList.remove('active');
+    }
+  };
+
+  window.closeSidebar = function() {
+    switchTab('map');
+  };
+
+  // 监听窗口大小变化
+  window.addEventListener('resize', function() {
+    isMobile = window.innerWidth <= 768;
+  });
 
   // ========== 搜索 ==========
   function initSearch() {
