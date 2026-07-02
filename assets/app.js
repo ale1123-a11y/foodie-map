@@ -9,14 +9,16 @@
     '大胃王阿伦': '#e74c3c',
     'TestV': '#3498db',
     '盗月社食遇记': '#2ecc71',
-    '转生成为毛毛': '#9b59b6'
+    '转生成为毛毛': '#9b59b6',
+    '鸡煲下士': '#e67e22'
   };
 
   const UP主_AVATAR = {
     '大胃王阿伦': '🍖',
     'TestV': '🎬',
     '盗月社食遇记': '🌙',
-    '转生成为毛毛': '🦁'
+    '转生成为毛毛': '🦁',
+    '鸡煲下士': '🐔'
   };
 
   // ========== 状态 ==========
@@ -96,6 +98,18 @@
       return '<span class="popup-tag">' + t + '</span>';
     }).join('');
 
+    // 媒体内容：视频或图片
+    let mediaHtml = '';
+    if (shop.videoUrl) {
+      mediaHtml = '<a class="popup-video-btn" href="' + shop.videoUrl + '" target="_blank" rel="noopener" style="background:' + color + '">' +
+        '▶ 观看探店视频' +
+      '</a>';
+    } else if (shop.image) {
+      mediaHtml = '<div class="popup-image-wrap">' +
+        '<img src="' + shop.image + '" alt="' + escapeHtml(shop.imageTitle || shop.name) + '" class="popup-image">' +
+      '</div>';
+    }
+
     return '<div class="popup-content">' +
       '<div class="popup-header" style="border-left-color:' + color + '">' +
         '<h3>' + escapeHtml(shop.name) + '</h3>' +
@@ -110,9 +124,7 @@
       '<div class="popup-tags">' + tagsHtml + '</div>' +
       '<p class="popup-desc">' + escapeHtml(shop.description) + '</p>' +
       '<div class="popup-address">📍 ' + escapeHtml(shop.address) + '</div>' +
-      '<a class="popup-video-btn" href="' + shop.videoUrl + '" target="_blank" rel="noopener" style="background:' + color + '">' +
-        '▶ 观看探店视频' +
-      '</a>' +
+      mediaHtml +
     '</div>';
   }
 
