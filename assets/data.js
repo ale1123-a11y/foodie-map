@@ -27,8 +27,6 @@ const SHOPS = [
     rating: 4.5,
     tags: ["铁板烧", "路边摊", "通山"],
     description: "通山县最夯的铁板烧，发到家超市门口的人气小摊。",
-    image: "assets/images/songjie.jpg",
-    imageTitle: "通山县最夯的铁板烧",
     address: "通山县发到家超市门口小摊"
   }
 ];
