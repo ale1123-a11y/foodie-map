@@ -86,6 +86,16 @@
         highlightListItem(shop.id);
       });
 
+      // 图片加载完成后重算弹窗尺寸
+      marker.on('popupopen', function() {
+        const img = $('.popup-image');
+        if (img) {
+          img.addEventListener('load', function() {
+            marker.getPopup().update();
+          });
+        }
+      });
+
       marker.addTo(markersLayer);
     });
   }
