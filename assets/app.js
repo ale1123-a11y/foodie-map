@@ -1,5 +1,5 @@
 /**
- * B站美食探店地图 - 应用逻辑
+ * B站美食探店地图 - 应用逻辑（高德地图 JS API 2.0）
  */
 (function() {
   'use strict';
@@ -19,7 +19,8 @@
 
   // ========== 状态 ==========
   let map = null;
-  let markersLayer = null;
+  let markers = [];
+  let currentInfoWindow = null;
   let currentUp主 = 'all';
   let currentSearch = '';
   let isMobile = window.innerWidth <= 768;
@@ -30,64 +31,69 @@
 
   // ========== 初始化地图 ==========
   function initMap() {
-    // 使用高德地图瓦片，无需 API Key
-    map = L.map('map-container', {
-      zoomControl: false,
-      attributionControl: false
-    }).setView([35.0, 105.0], 4);
-
-    // 高德矢量底图
-    L.tileLayer(
-      'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-      {
-        subdomains: '1234',
-        maxZoom: 18,
-        minZoom: 3
-      }
-    ).addTo(map);
-
-    // 重新定位 zoom 控件到右侧
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-    markersLayer = L.layerGroup().addTo(map);
+    map = new AMap.Map('map-container', {
+      zoom: 4,
+      center: [105.0, 35.0],
+      resizeEnable: true,
+      zoomEnable: true,
+      dragEnable: true
+    });
   }
 
   // ========== 渲染地图标注 ==========
   function renderMarkers(shops) {
-    markersLayer.clearLayers();
+    // 清除旧标记
+    markers.forEach(function(m) {
+      m.setMap(null);
+    });
+    markers = [];
 
     shops.forEach(function(shop) {
       const color = UP主_COLORS[shop.up主] || '#999';
-      const iconHtml = '<div class="custom-marker" style="background:' + color + '">' +
-        '<span class="marker-emoji">' + (UP主_AVATAR[shop.up主] || '📍') + '</span>' +
-        '</div>';
+      var markerEl = document.createElement('div');
+      markerEl.className = 'custom-marker';
+      markerEl.style.background = color;
+      markerEl.innerHTML = '<span class="marker-emoji">' + (UP主_AVATAR[shop.up主] || '📍') + '</span>';
 
-      const icon = L.divIcon({
-        html: iconHtml,
-        className: 'custom-marker-container',
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -38]
+      var marker = new AMap.Marker({
+        position: [shop.lng, shop.lat],
+        content: markerEl,
+        offset: new AMap.Pixel(-18, -18),
+        zIndex: 100
       });
 
-      const marker = L.marker([shop.lat, shop.lng], { icon: icon });
-
-      const popupHtml = buildPopupHtml(shop);
-      marker.bindPopup(popupHtml, {
-        maxWidth: 320,
-        className: 'shop-popup'
-      });
-
+      // 点击标记打开弹窗
       marker.on('click', function() {
+        openInfoWindow(shop, marker);
         highlightListItem(shop.id);
       });
 
-      marker.addTo(markersLayer);
+      marker._shopId = shop.id;
+      marker.setMap(map);
+      markers.push(marker);
     });
   }
 
+  // ========== 打开弹窗 ==========
+  function openInfoWindow(shop, marker) {
+    // 关闭已有弹窗
+    if (currentInfoWindow) {
+      currentInfoWindow.close();
+    }
+
+    var content = buildInfoWindowHtml(shop);
+
+    currentInfoWindow = new AMap.InfoWindow({
+      content: content,
+      offset: new AMap.Pixel(0, -40),
+      isCustom: true
+    });
+
+    currentInfoWindow.open(map, marker.getPosition());
+  }
+
   // ========== 构建弹窗 HTML ==========
-  function buildPopupHtml(shop) {
+  function buildInfoWindowHtml(shop) {
     const color = UP主_COLORS[shop.up主] || '#999';
     const stars = '★'.repeat(Math.floor(shop.rating)) + '☆'.repeat(5 - Math.floor(shop.rating));
     const tagsHtml = shop.tags.map(function(t) {
@@ -106,7 +112,7 @@
       '</div>';
     }
 
-    return '<div class="popup-content">' +
+    return '<div class="shop-popup">' +
       '<div class="popup-header" style="border-left-color:' + color + '">' +
         '<h3>' + escapeHtml(shop.name) + '</h3>' +
         '<span class="popup-city">' + escapeHtml(shop.city) + '</span>' +
@@ -203,7 +209,7 @@
   }
 
   function applyFilter() {
-    const filtered = getFilteredShops();
+    var filtered = getFilteredShops();
     renderList(filtered);
     renderMarkers(filtered);
     updateStats(filtered);
@@ -215,10 +221,9 @@
 
     // 如果过滤后店铺少，自动调整地图视野
     if (filtered.length > 0 && filtered.length <= 10) {
-      const group = new L.featureGroup(filtered.map(function(s) { return L.marker([s.lat, s.lng]); }));
-      map.fitBounds(group.getBounds().pad(0.2));
+      map.setFitView(null, false, [80, 80, 80, 80]);
     } else if (filtered.length === 0) {
-      map.setView([35.0, 105.0], 4);
+      map.setZoomAndCenter(4, [105.0, 35.0]);
     }
   }
 
@@ -229,16 +234,15 @@
   };
 
   window.focusShop = function(id) {
-    const shop = SHOPS.find(function(s) { return s.id === id; });
+    var shop = SHOPS.find(function(s) { return s.id === id; });
     if (!shop) return;
 
-    map.setView([shop.lat, shop.lng], 14);
+    map.setZoomAndCenter(14, [shop.lng, shop.lat]);
 
-    // 打开对应标注的弹窗
-    markersLayer.eachLayer(function(layer) {
-      const latLng = layer.getLatLng();
-      if (Math.abs(latLng.lat - shop.lat) < 0.0001 && Math.abs(latLng.lng - shop.lng) < 0.0001) {
-        layer.openPopup();
+    // 找到对应标注并打开弹窗
+    markers.forEach(function(m) {
+      if (m._shopId === shop.id) {
+        openInfoWindow(shop, m);
       }
     });
 

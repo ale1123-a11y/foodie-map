@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>B站美食探店地图</title>
-  <link rel="stylesheet" href="libs/css/leaflet.css">
   <style>
     /* ========== CSS 变量 ========== */
     :root {
@@ -312,11 +311,6 @@
     }
 
     /* ========== 自定义标注 ========== */
-    .custom-marker-container {
-      background: none !important;
-      border: none !important;
-    }
-
     .custom-marker {
       width: 36px;
       height: 36px;
@@ -326,6 +320,7 @@
       justify-content: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       border: 2px solid #fff;
+      cursor: pointer;
       transition: transform 0.2s;
     }
 
@@ -336,23 +331,17 @@
     .marker-emoji {
       font-size: 16px;
       line-height: 1;
+      pointer-events: none;
     }
 
     /* ========== 弹窗样式 ========== */
-    .shop-popup .leaflet-popup-content-wrapper {
+    .shop-popup {
       border-radius: var(--radius);
-      padding: 0;
       overflow: hidden;
       box-shadow: var(--shadow-hover);
-    }
-
-    .shop-popup .leaflet-popup-content {
-      margin: 0;
-      width: 500px !important;
-    }
-
-    .shop-popup .leaflet-popup-tip {
       background: #fff;
+      width: 500px;
+      max-width: 90vw;
     }
 
     .popup-content {
@@ -579,7 +568,7 @@
       }
 
       /* 弹窗优化 */
-      .shop-popup .leaflet-popup-content {
+      .shop-popup {
         width: calc(100vw - 48px) !important;
         max-width: 340px;
       }
@@ -639,11 +628,7 @@
       }
     }
 
-    /* Leaflet 控件微调 */
-    .leaflet-control-zoom a {
-      color: var(--ink) !important;
-    }
-  </style>
+    </style>
 </head>
 <body>
   <div id="app">
@@ -693,8 +678,14 @@
   </div>
 
   <!-- 脚本 -->
-  <script src="libs/js/leaflet.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/app.js"></script>
+  <!-- 高德地图 JS API -->
+  <script>
+    window._AMapSecurityConfig = {
+      securityJsCode: '92fc08a9255ff5543281a8c2a0d6f788'
+    };
+  </script>
+  <script src="https://webapi.amap.com/maps?v=2.0&key=81fd5099488aec6bc88363cb82a54ca5"></script>
 </body>
 </html>

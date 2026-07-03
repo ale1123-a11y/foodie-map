@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>B站美食探店地图</title>
-  <link rel="stylesheet" href="libs/css/leaflet.css">
   <style>
     /* ========== CSS 变量 ========== */
     :root {
@@ -312,11 +311,6 @@
     }
 
     /* ========== 自定义标注 ========== */
-    .custom-marker-container {
-      background: none !important;
-      border: none !important;
-    }
-
     .custom-marker {
       width: 36px;
       height: 36px;
@@ -326,6 +320,7 @@
       justify-content: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       border: 2px solid #fff;
+      cursor: pointer;
       transition: transform 0.2s;
     }
 
@@ -336,23 +331,17 @@
     .marker-emoji {
       font-size: 16px;
       line-height: 1;
+      pointer-events: none;
     }
 
     /* ========== 弹窗样式 ========== */
-    .shop-popup .leaflet-popup-content-wrapper {
+    .shop-popup {
       border-radius: var(--radius);
-      padding: 0;
       overflow: hidden;
       box-shadow: var(--shadow-hover);
-    }
-
-    .shop-popup .leaflet-popup-content {
-      margin: 0;
-      width: 280px !important;
-    }
-
-    .shop-popup .leaflet-popup-tip {
       background: #fff;
+      width: 500px;
+      max-width: 90vw;
     }
 
     .popup-content {
@@ -454,27 +443,192 @@
         --sidebar-width: 100%;
       }
 
-      #app {
-        flex-direction: column;
+      html, body {
+        font-size: 16px;
+        overflow: hidden;
+        touch-action: manipulation;
       }
 
+      #app {
+        flex-direction: column;
+        padding-bottom: 56px;
+      }
+
+      /* 侧边栏作为底部抽屉 */
       .sidebar {
-        height: 45vh;
-        min-height: 300px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 56px;
+        width: 100%;
+        height: auto;
+        min-height: auto;
         border-right: none;
-        border-bottom: 1px solid var(--rule);
+        border-bottom: none;
+        z-index: 100;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        border-radius: 16px 16px 0 0;
+      }
+
+      .sidebar.show {
+        transform: translateY(0);
+      }
+
+      .sidebar-header {
+        padding: 16px 16px 10px;
+        border-radius: 16px 16px 0 0;
+      }
+
+      .sidebar-header h1 {
+        font-size: 1.2rem;
+      }
+
+      #stats-bar {
+        padding: 10px 16px;
+        gap: 12px;
+      }
+
+      .search-box {
+        padding: 10px 16px;
+      }
+
+      .search-box input {
+        padding: 12px 40px 12px 16px;
+        font-size: 1rem;
+      }
+
+      .filter-section {
+        padding: 0 16px 10px;
+      }
+
+      .filter-btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        min-height: 36px;
+      }
+
+      #shop-list {
+        padding: 0 16px 16px;
+      }
+
+      .shop-card {
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+
+      .shop-card-header h4 {
+        font-size: 1.05rem;
+      }
+
+      /* 底部导航 */
+      .mobile-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        background: var(--surface);
+        border-top: 1px solid var(--rule);
+        z-index: 200;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+      }
+
+      .nav-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 0.7rem;
+        cursor: pointer;
+        padding: 6px;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .nav-tab.active {
+        color: var(--primary);
+      }
+
+      .nav-tab-icon {
+        font-size: 1.3rem;
+        line-height: 1;
       }
 
       #map-container {
-        height: 55vh;
+        height: calc(100vh - 56px);
+        flex: none;
+      }
+
+      /* 弹窗优化 */
+      .shop-popup {
+        width: calc(100vw - 48px) !important;
+        max-width: 340px;
+      }
+
+      .popup-header {
+        padding: 12px 14px;
+      }
+
+      .popup-header h3 {
+        font-size: 1.05rem;
+      }
+
+      .popup-meta {
+        padding: 8px 14px;
+        font-size: 0.9rem;
+      }
+
+      .popup-tags {
+        padding: 0 14px 8px;
+      }
+
+      .popup-tag {
+        font-size: 0.8rem;
+        padding: 4px 12px;
+      }
+
+      .popup-desc {
+        padding: 0 14px 8px;
+        font-size: 0.9rem;
+      }
+
+      .popup-address {
+        padding: 0 14px 10px;
+        font-size: 0.85rem;
+      }
+
+      .popup-video-btn {
+        margin: 0 14px 14px;
+        padding: 12px;
+        font-size: 1rem;
+      }
+
+      /* 关闭列表的遮罩层 */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 99;
+      }
+
+      .sidebar-overlay.show {
+        display: block;
       }
     }
 
-    /* Leaflet 控件微调 */
-    .leaflet-control-zoom a {
-      color: var(--ink) !important;
-    }
-  </style>
+    </style>
 </head>
 <body>
   <div id="app">
@@ -506,11 +660,32 @@
 
     <!-- 地图 -->
     <main id="map-container"></main>
+
+    <!-- 移动端遮罩层 -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- 移动端底部导航 -->
+    <nav class="mobile-nav" id="mobile-nav">
+      <button class="nav-tab active" id="tab-map" onclick="switchTab('map')">
+        <span class="nav-tab-icon">🗺️</span>
+        <span>地图</span>
+      </button>
+      <button class="nav-tab" id="tab-list" onclick="switchTab('list')">
+        <span class="nav-tab-icon">📋</span>
+        <span>列表</span>
+      </button>
+    </nav>
   </div>
 
   <!-- 脚本 -->
-  <script src="libs/js/leaflet.js"></script>
   <script src="assets/data.js"></script>
   <script src="assets/app.js"></script>
+  <!-- 高德地图 JS API -->
+  <script>
+    window._AMapSecurityConfig = {
+      securityJsCode: '92fc08a9255ff5543281a8c2a0d6f788'
+    };
+  </script>
+  <script src="https://webapi.amap.com/maps?v=2.0&key=81fd5099488aec6bc88363cb82a54ca5"></script>
 </body>
 </html>
