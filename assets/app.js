@@ -281,6 +281,13 @@
     hideRoutePanel();
   };
 
+  window.closePopup = function() {
+    if (currentInfoWindow) {
+      currentInfoWindow.close();
+      currentInfoWindow = null;
+    }
+  };
+
   function hideRoutePanel() {
     if (routePanel) {
       routePanel.remove();
@@ -366,6 +373,7 @@
     '</button>';
 
     return '<div class="shop-popup">' +
+      '<button class="popup-close" onclick="closePopup()" title="关闭">✕</button>' +
       '<div class="popup-header" style="border-left-color:' + color + '">' +
         '<h3>' + escapeHtml(shop.name) + '</h3>' +
         '<span class="popup-city">' + escapeHtml(shop.city) + '</span>' +
