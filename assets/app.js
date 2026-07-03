@@ -43,9 +43,10 @@
     });
 
     // 加载高德插件
-    AMap.plugin(['AMap.AutoComplete', 'AMap.Geolocation'], function() {
+    AMap.plugin(['AMap.AutoComplete', 'AMap.Geolocation', 'AMap.Driving'], function() {
       initAutoComplete();
       initGeolocation();
+      initDriving();
     });
   }
 
@@ -172,11 +173,120 @@
     });
   };
 
-  // ========== 导航到这里 ==========
+  // ========== 导航到这里（网页内路线规划） ==========
+  let driving = null;
+  let routePanel = null;
+  let userPosition = null;
+
+  function initDriving() {
+    driving = new AMap.Driving({
+      map: map,
+      panel: false,
+      policy: AMap.DrivingPolicy.LEAST_TIME
+    });
+  }
+
   window.navigateTo = function(lng, lat, name) {
-    var url = 'https://uri.amap.com/navigation?to=' + lng + ',' + lat + ',' + encodeURIComponent(name) + '&mode=car&policy=1';
-    window.open(url, '_blank');
+    var target = [lng, lat];
+
+    // 如果已有用户位置，直接规划路线
+    if (userPosition) {
+      doNavigate(userPosition, target, name);
+      return;
+    }
+
+    // 否则先获取用户位置
+    if (!geolocation) {
+      alert('定位功能初始化中，请稍后再试');
+      return;
+    }
+
+    geolocation.getCurrentPosition(function(status, result) {
+      if (status === 'complete') {
+        var pos = result.position;
+        userPosition = [pos.lng, pos.lat];
+
+        // 更新定位标记
+        if (locateMarker) {
+          locateMarker.setPosition(userPosition);
+        } else {
+          locateMarker = new AMap.Marker({
+            position: userPosition,
+            content: '<div style="width:16px;height:16px;background:#3388ff;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+            offset: new AMap.Pixel(-8, -8),
+            zIndex: 200
+          });
+          locateMarker.setMap(map);
+        }
+
+        doNavigate(userPosition, target, name);
+      } else {
+        alert('定位失败，无法规划路线：' + (result.message || '请检查定位权限'));
+      }
+    });
   };
+
+  function doNavigate(start, end, name) {
+    // 清除旧路线
+    driving.clear();
+    hideRoutePanel();
+
+    driving.search(new AMap.LngLat(start[0], start[1]), new AMap.LngLat(end[0], end[1]), function(status, result) {
+      if (status === 'complete') {
+        var route = result.routes[0];
+        showRoutePanel(route, name);
+        // 调整视野包含起点和终点
+        map.setFitView(null, false, [60, 60, 60, 380]);
+      } else {
+        alert('路线规划失败：' + (result.info || '未知错误'));
+      }
+    });
+  }
+
+  function showRoutePanel(route, name) {
+    hideRoutePanel();
+
+    var distance = (route.distance / 1000).toFixed(1);
+    var time = Math.ceil(route.time / 60);
+    var timeText = time >= 60 ? Math.floor(time / 60) + '小时' + (time % 60) + '分钟' : time + '分钟';
+
+    var panel = document.createElement('div');
+    panel.id = 'route-panel';
+    panel.className = 'route-panel';
+    panel.innerHTML =
+      '<div class="route-panel-header">' +
+        '<span>🚗 驾车路线</span>' +
+        '<button onclick="clearRoute()" class="route-close">✕</button>' +
+      '</div>' +
+      '<div class="route-panel-body">' +
+        '<div class="route-dest">到：' + escapeHtml(name) + '</div>' +
+        '<div class="route-info">' +
+          '<span class="route-distance">' + distance + ' 公里</span>' +
+          '<span class="route-time">约 ' + timeText + '</span>' +
+        '</div>' +
+        '<div class="route-steps">' +
+          route.steps.slice(0, 3).map(function(step, i) {
+            return '<div class="route-step">' + (i + 1) + '. ' + step.instruction + '</div>';
+          }).join('') +
+          (route.steps.length > 3 ? '<div class="route-step-more">...还有 ' + (route.steps.length - 3) + ' 步</div>' : '') +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('app').appendChild(panel);
+    routePanel = panel;
+  }
+
+  window.clearRoute = function() {
+    if (driving) driving.clear();
+    hideRoutePanel();
+  };
+
+  function hideRoutePanel() {
+    if (routePanel) {
+      routePanel.remove();
+      routePanel = null;
+    }
+  }
 
   // ========== 渲染地图标注 ==========
   function renderMarkers(shops) {
