@@ -149,6 +149,60 @@
       display: block;
     }
 
+    /* 搜索建议下拉框 */
+    .search-suggestions {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 20px;
+      right: 20px;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-hover);
+      list-style: none;
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 50;
+      display: none;
+    }
+
+    .search-suggestions.show {
+      display: block;
+    }
+
+    .search-suggestions li {
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-suggestions li:last-child {
+      border-bottom: none;
+    }
+
+    .search-suggestions li:hover {
+      background: var(--bg);
+    }
+
+    .sugg-icon {
+      font-size: 1rem;
+    }
+
+    .sugg-name {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .sugg-district {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
     /* UP主筛选 */
     .filter-section {
       padding: 0 20px 12px;
@@ -308,6 +362,41 @@
       flex: 1;
       height: 100%;
       background: #ddd;
+      position: relative;
+    }
+
+    /* 定位按钮 */
+    .locate-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      z-index: 5;
+      transition: all 0.2s;
+    }
+
+    .locate-btn:hover {
+      box-shadow: var(--shadow-hover);
+      transform: scale(1.05);
+    }
+
+    .locate-btn.locate-loading {
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
     /* ========== 自定义标注 ========== */
@@ -500,6 +589,20 @@
         font-size: 1rem;
       }
 
+      .search-suggestions {
+        left: 16px;
+        right: 16px;
+        max-height: 200px;
+      }
+
+      .locate-btn {
+        top: 12px;
+        right: 12px;
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+      }
+
       .filter-section {
         padding: 0 16px 10px;
       }
@@ -644,8 +747,9 @@
 
       <!-- 搜索 -->
       <div class="search-box">
-        <input type="text" id="search-input" placeholder="搜索店铺、城市、标签或 UP 主...">
+        <input type="text" id="search-input" placeholder="搜索店铺、城市、标签或 UP 主..." autocomplete="off">
         <button id="search-clear">✕</button>
+        <ul id="search-suggestions" class="search-suggestions"></ul>
       </div>
 
       <!-- UP主筛选 -->
@@ -659,7 +763,9 @@
     </aside>
 
     <!-- 地图 -->
-    <main id="map-container"></main>
+    <main id="map-container">
+      <button class="locate-btn" id="locate-btn" title="定位到我的位置" onclick="locateMe()">📍</button>
+    </main>
 
     <!-- 移动端遮罩层 -->
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>

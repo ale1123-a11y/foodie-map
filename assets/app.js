@@ -24,6 +24,9 @@
   let currentUp主 = 'all';
   let currentSearch = '';
   let isMobile = window.innerWidth <= 768;
+  let autoComplete = null;
+  let geolocation = null;
+  let locateMarker = null;
 
   // ========== DOM 元素缓存 ==========
   const $ = (sel) => document.querySelector(sel);
@@ -38,7 +41,142 @@
       zoomEnable: true,
       dragEnable: true
     });
+
+    // 加载高德插件
+    AMap.plugin(['AMap.AutoComplete', 'AMap.Geolocation'], function() {
+      initAutoComplete();
+      initGeolocation();
+    });
   }
+
+  // ========== 初始化 POI 自动补全 ==========
+  function initAutoComplete() {
+    autoComplete = new AMap.AutoComplete({
+      input: 'search-input'
+    });
+
+    autoComplete.on('select', function(e) {
+      var poi = e.poi;
+      if (poi.location) {
+        map.setZoomAndCenter(16, [poi.location.lng, poi.location.lat]);
+        hideSuggestions();
+      }
+    });
+
+    // 监听输入，显示自定义建议列表
+    var input = $('#search-input');
+    if (input) {
+      input.addEventListener('input', function(e) {
+        var keyword = e.target.value.trim();
+        if (keyword.length >= 1) {
+          autoComplete.search(keyword, function(status, result) {
+            if (status === 'complete' && result.info === 'OK') {
+              renderSuggestions(result.tips);
+            } else {
+              hideSuggestions();
+            }
+          });
+        } else {
+          hideSuggestions();
+        }
+      });
+
+      // 点击外部关闭建议
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-box')) {
+          hideSuggestions();
+        }
+      });
+    }
+  }
+
+  // ========== 渲染搜索建议 ==========
+  function renderSuggestions(tips) {
+    var list = $('#search-suggestions');
+    if (!list) return;
+
+    if (!tips || tips.length === 0) {
+      hideSuggestions();
+      return;
+    }
+
+    list.innerHTML = tips.slice(0, 6).map(function(tip) {
+      var name = tip.name || '';
+      var district = tip.district || '';
+      return '<li onclick="selectSuggestion(' + tip.location.lng + ',' + tip.location.lat + ',\'' + escapeHtml(name).replace(/'/g, "\\'") + '\')">' +
+        '<span class="sugg-icon">📍</span>' +
+        '<span class="sugg-name">' + escapeHtml(name) + '</span>' +
+        '<span class="sugg-district">' + escapeHtml(district) + '</span>' +
+      '</li>';
+    }).join('');
+
+    list.classList.add('show');
+  }
+
+  window.selectSuggestion = function(lng, lat, name) {
+    map.setZoomAndCenter(16, [lng, lat]);
+    hideSuggestions();
+    $('#search-input').value = name;
+  };
+
+  function hideSuggestions() {
+    var list = $('#search-suggestions');
+    if (list) list.classList.remove('show');
+  }
+
+  // ========== 初始化定位 ==========
+  function initGeolocation() {
+    geolocation = new AMap.Geolocation({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      zoomToAccuracy: true,
+      showButton: false,
+      showMarker: false,
+      showCircle: false
+    });
+    map.addControl(geolocation);
+  }
+
+  // ========== 定位到我的位置 ==========
+  window.locateMe = function() {
+    var btn = $('#locate-btn');
+    if (btn) btn.classList.add('locate-loading');
+
+    if (!geolocation) {
+      alert('定位功能初始化中，请稍后再试');
+      if (btn) btn.classList.remove('locate-loading');
+      return;
+    }
+
+    geolocation.getCurrentPosition(function(status, result) {
+      if (btn) btn.classList.remove('locate-loading');
+
+      if (status === 'complete') {
+        var pos = result.position;
+        // 添加或更新定位标记
+        if (locateMarker) {
+          locateMarker.setPosition([pos.lng, pos.lat]);
+        } else {
+          locateMarker = new AMap.Marker({
+            position: [pos.lng, pos.lat],
+            content: '<div style="width:16px;height:16px;background:#3388ff;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+            offset: new AMap.Pixel(-8, -8),
+            zIndex: 200
+          });
+          locateMarker.setMap(map);
+        }
+        map.setZoomAndCenter(14, [pos.lng, pos.lat]);
+      } else {
+        alert('定位失败：' + (result.message || '请检查定位权限'));
+      }
+    });
+  };
+
+  // ========== 导航到这里 ==========
+  window.navigateTo = function(lng, lat, name) {
+    var url = 'https://uri.amap.com/navigation?to=' + lng + ',' + lat + ',' + encodeURIComponent(name) + '&mode=car&policy=1';
+    window.open(url, '_blank');
+  };
 
   // ========== 渲染地图标注 ==========
   function renderMarkers(shops) {
@@ -112,6 +250,11 @@
       '</div>';
     }
 
+    // 导航按钮
+    var navHtml = '<button class="popup-video-btn" onclick="navigateTo(' + shop.lng + ',' + shop.lat + ',\'' + escapeHtml(shop.name).replace(/'/g, "\\'") + '\')" style="background:#27ae60;margin-top:8px;">' +
+      '🧭 导航到这里' +
+    '</button>';
+
     return '<div class="shop-popup">' +
       '<div class="popup-header" style="border-left-color:' + color + '">' +
         '<h3>' + escapeHtml(shop.name) + '</h3>' +
@@ -127,6 +270,7 @@
       '<p class="popup-desc">' + escapeHtml(shop.description) + '</p>' +
       '<div class="popup-address">📍 ' + escapeHtml(shop.address) + '</div>' +
       mediaHtml +
+      navHtml +
     '</div>';
   }
 
@@ -307,6 +451,7 @@
         input.value = '';
         currentSearch = '';
         applyFilter();
+        hideSuggestions();
       });
     }
   }
